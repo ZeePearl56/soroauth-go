@@ -28,18 +28,21 @@ later.
 
 ## CLI
 
-Every subcommand accepts `--json` to emit a single JSON object on stdout. On
-success the object carries the result fields; on failure it carries an `error`
-field. Nothing else is written to stdout in JSON mode, so scripts can safely
-pipe the output to `jq` without stripping usage text.
+Every subcommand that produces output accepts `--json` to emit a single JSON
+object (or, for `tree`, either the JSON report or one of its two text
+renderings — see below) on stdout. On success the object carries the result
+fields; on failure it carries an `error` field. Nothing else is written to
+stdout in JSON mode, so scripts can safely pipe the output to `jq` without
+stripping usage text. `tui` is the one exception: it is an interactive
+terminal program, not something a script drives, so it has no `--json` mode.
 
 | subcommand | success fields | failure field |
 |---|---|---|
 | `payload` | `preimage`, `payload` | `error` |
 | `sign` | `signed_entry` | `error` |
 | `delegates` | `wrapped_entry` | `error` |
-| `inspect` | (the `EntryInfo` struct) | `error` |
-| `tree` | (the `EntryInfo` struct, same shape as `inspect`) | `error` |
+| `inspect` | (the `EntryInfo` struct — this was already `inspect`'s only output; `--json` is accepted for consistency and does not change it) | `error` |
+| `tree` | (the `EntryInfo` struct, same shape as `inspect`; without `--json` it prints an ASCII or DOT rendering instead) | `error` |
 | `doctor` | `checks`, `ok` | (checks carry their own `pass`/`detail`; see below) |
 | `cross-compile` | `target`, `size`, `sha256` (one per line) | `error` |
 

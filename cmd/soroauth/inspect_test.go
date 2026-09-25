@@ -195,3 +195,47 @@ func TestInspectRejects(t *testing.T) {
 		})
 	}
 }
+
+// TestInspectJSONErrorStaysOnStdoutOnly proves inspect's --json flag, added
+// for parity with every other subcommand, both parses (inspect's success
+// output was already JSON, but the flag itself was previously rejected as
+// unknown) and, on a failure, moves the error to a JSON object on stdout
+// with nothing written to stderr — the same contract "sign", "payload" and
+// "delegates" already give a caller under --json.
+func TestInspectJSONErrorStaysOnStdoutOnly(t *testing.T) {
+	stdout, stderr, err := runCLI(t, "inspect", "--entry", "not-base64", "--json")
+	if err == nil {
+		t.Fatal("expected an error for a malformed --entry")
+	}
+	if stderr != "" {
+		t.Errorf("stderr must stay empty when --json handles the error, got %q", stderr)
+	}
+	var out struct {
+		Error string `json:"error"`
+	}
+	if jsonErr := json.Unmarshal([]byte(stdout), &out); jsonErr != nil {
+		t.Fatalf("decoding stdout as JSON: %v\nstdout: %s", jsonErr, stdout)
+	}
+	if !strings.Contains(out.Error, "decoding --entry") {
+		t.Errorf("error field %q does not mention the decode failure", out.Error)
+	}
+}
+
+// TestInspectJSONFlagDoesNotChangeSuccessOutput proves --json is accepted
+// without altering inspect's already-JSON success output, so existing
+// scripts that call inspect without the flag keep working unchanged.
+func TestInspectJSONFlagDoesNotChangeSuccessOutput(t *testing.T) {
+	v := loadVector(t, "legacy_negative_nonce")
+
+	withFlag, _, err := runCLI(t, "inspect", "--entry", v.UnsignedEntryXDR, "--json")
+	if err != nil {
+		t.Fatalf("inspect --json returned an error: %v", err)
+	}
+	without, _, err := runCLI(t, "inspect", "--entry", v.UnsignedEntryXDR)
+	if err != nil {
+		t.Fatalf("inspect returned an error: %v", err)
+	}
+	if withFlag != without {
+		t.Errorf("--json changed inspect's success output:\nwith:    %s\nwithout: %s", withFlag, without)
+	}
+}
