@@ -26,6 +26,27 @@ go install github.com/soroauth/soroauth-go/cmd/soroauth@latest
 Requires Go 1.25.0 or later, and `github.com/stellar/go-stellar-sdk` v0.7.3 or
 later.
 
+A container image is published on GHCR for every release tag, for CI systems
+that need to sign an entry without installing a Go toolchain:
+
+```sh
+docker pull ghcr.io/soroauth/soroauth-go:v0.1.0   # or :latest for the newest release
+
+docker run --rm -e SEED=SABC... ghcr.io/soroauth/soroauth-go:v0.1.0 \
+  sign --entry <base64> --valid-until 1234567 --network testnet --secret-env SEED
+```
+
+The seed is passed the same way it is on the command line: a named
+environment variable, read only by `--secret-env`, never a flag value. The
+image itself never contains any key material, and nothing bakes a seed into
+a layer. That said, an environment variable set on a running container is
+visible to anything that can inspect that container (`docker inspect`,
+`/proc/<pid>/environ` from the host, a sidecar with the same namespace), the
+same as it would be for any other process — treat container secret injection
+with the same care you would give a plain environment variable anywhere
+else. The image is built from `Dockerfile` at the repository root by
+`.github/workflows/release.yml` on every `v*` tag push.
+
 ## CLI
 
 Every subcommand that produces output accepts `--json` to emit a single JSON
