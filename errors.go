@@ -101,6 +101,21 @@ var (
 	// rather than on-chain.
 	ErrTooManySignatures = errors.New("too many signatures for a classic account")
 
+	// ErrDecodeLimit is returned when untrusted input is refused for exceeding
+	// one of the bounds this library applies to it: MaxDecodeInputBytes on the
+	// encoded size, or MaxDecodeDepth on XDR nesting and on the recursive walks
+	// over an already-decoded entry.
+	//
+	// The Go SDK's defaults are not a bound chosen for untrusted input:
+	// xdr.SafeUnmarshalBase64 sets MaxInputLen from the input it was handed, so
+	// it can never refuse an input for being too long, and it leaves go-xdr's
+	// default depth of 1500 in place. An entry that comes from a simulation,
+	// the network, or a caller is untrusted, so DecodeAuthorizationEntry and
+	// the traversals apply explicit limits and report this sentinel when one
+	// bites. A refusal is the fail-closed outcome: the alternative is doing
+	// unbounded work on input an attacker chose.
+	ErrDecodeLimit = errors.New("untrusted input exceeds a decode limit")
+
 	// ErrNoInvokeOperation is returned when a transaction envelope carries no
 	// invokeHostFunction operation, and therefore no authorization entries at
 	// all.
@@ -119,16 +134,6 @@ var (
 	// envelope was built against a protocol this build does not implement, so
 	// reading it would be a guess about a wire format that has not been read.
 	ErrUnsupportedEnvelope = errors.New("unsupported transaction envelope type")
-
-	// ErrDecodeLimit is returned by DecodeAuthorizationEntry, and by anything
-	// built on it, when an untrusted input exceeds MaxDecodeInputBytes or
-	// MaxDecodeDepth.
-	//
-	// Those limits exist because an authorization entry decoded here came
-	// from somewhere else: a simulation, the network, or a caller's own
-	// input. A doctored or corrupted blob should be refused at a bound this
-	// library chose, not at whatever the SDK's much looser default allows.
-	ErrDecodeLimit = errors.New("input exceeds the decode limit")
 )
 
 // NoMatchingCredentialNodeError is returned when no credential node in the

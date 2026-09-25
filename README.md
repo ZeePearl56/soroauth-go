@@ -26,6 +26,26 @@ go install github.com/soroauth/soroauth-go/cmd/soroauth@latest
 Requires Go 1.25.0 or later, and `github.com/stellar/go-stellar-sdk` v0.7.3 or
 later.
 
+## Common tasks
+
+The same commands [CONTRIBUTING.md](CONTRIBUTING.md) uses are wrapped by the
+Makefile, so there is one entry point for the local checks and the generated
+artefacts:
+
+```sh
+make              # fmt, vet and test (the default)
+make build        # build the CLI to bin/soroauth
+make vectors      # regenerate testdata/vectors from the pinned JS SDK
+make vectors-check # regenerate, then fail if the committed vectors changed
+make e2e          # build the test contract and run the live testnet suite
+```
+
+Every target fails loudly: `make fmt` exits non-zero if any file is not
+gofmt-clean, and `make vectors-check` exits non-zero if regeneration changes a
+committed vector. `make help` lists the targets.
+
+## Container image
+
 A container image is published on GHCR for every release tag, for CI systems
 that need to sign an entry without installing a Go toolchain:
 
@@ -86,6 +106,10 @@ SEED=SABC... ./soroauth sign \
   --entry <base64> --valid-until 1234567 \
   --delegate GAAAA... --delegate GBBBB... --json |
   jq -r .wrapped_entry
+
+# Inspect an entry (output is JSON either way) and pick fields out of it
+./soroauth inspect --entry <base64> |
+  jq -r '"\(.credential_type) \(.address) expires=\(.valid_until_ledger)"'
 ```
 
 ### Tree — render a delegate tree

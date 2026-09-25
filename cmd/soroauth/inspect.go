@@ -12,7 +12,7 @@ import (
 const inspectUsage = `soroauth inspect — print an entry's structure as JSON.
 
 usage:
-  soroauth inspect --entry <base64>
+  soroauth inspect --entry <base64> [--json]
 
 --entry accepts either an authorization entry or a whole transaction envelope,
 and the tool works out which it was given. An envelope is reported as an array,
@@ -24,6 +24,11 @@ operations. A single entry is reported as one object, as it always has been.
 Reports the credential arm, whether the payload is address-bound, the address,
 nonce and expiration ledger, which nodes carry signatures, the delegate tree,
 and the shape of the invocation tree.
+
+Without --json the report is pretty-printed for reading. With --json it is a
+single compact object, so it composes with jq and with the other subcommands.
+On error, --json prints a single JSON object with an "error" field to stdout
+and exits non-zero; nothing else is written to stdout.
 
 This is structural only. It reports which contract and function are being
 called, not what they do or whether the arguments are reasonable, so it is a
@@ -84,6 +89,10 @@ func runInspect(args []string, stdout, stderr io.Writer) error {
 		report = info
 	}
 
+	// inspect's success output is already JSON, so --json is a true no-op
+	// here: the report is always pretty-printed the same way, with or
+	// without the flag, and existing scripts that called inspect before
+	// --json existed keep getting byte-identical output.
 	encoded, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return writeJSONError(stdout, *jsonFlag, newErrorf(ExitGeneralError, "encoding the report: %w", err))
