@@ -39,6 +39,7 @@ pipe the output to `jq` without stripping usage text.
 | `sign` | `signed_entry` | `error` |
 | `delegates` | `wrapped_entry` | `error` |
 | `inspect` | (the `EntryInfo` struct) | `error` |
+| `tree` | (the `EntryInfo` struct, same shape as `inspect`) | `error` |
 | `doctor` | `checks`, `ok` | (checks carry their own `pass`/`detail`; see below) |
 | `cross-compile` | `target`, `size`, `sha256` (one per line) | `error` |
 
@@ -62,6 +63,36 @@ SEED=SABC... ./soroauth sign \
   --delegate GAAAA... --delegate GBBBB... --json |
   jq -r .wrapped_entry
 ```
+
+### Tree — render a delegate tree
+
+`inspect` reports an entry's structure as JSON; `tree` renders the same
+structure — the delegates-arm tree in particular — as something a person can
+read at a glance, either for a terminal or for embedding in docs.
+
+```sh
+# Terminal-readable, indented ASCII
+./soroauth tree --entry <base64>
+
+# Graphviz DOT, for docs
+./soroauth tree --entry <base64> --format dot | dot -Tsvg -o tree.svg
+
+# Structured, same shape as "inspect"
+./soroauth tree --entry <base64> --json
+```
+
+```
+GTOP (unsigned)
+├── GA... (signed)
+│   └── GA... (unsigned)
+└── GB... (unsigned)
+```
+
+One address appearing at more than one nesting level is legal under CAP-71-01
+(the same key delegating twice in one tree), and `tree` never merges those
+occurrences into a single node: each is printed in its own position, with its
+own signed/unsigned state, so a repeated address never reads as one node that
+somehow got signed twice.
 
 ### Doctor — check the local environment for common first-run problems
 
