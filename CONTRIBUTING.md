@@ -324,6 +324,27 @@ fixture in `address_test.go` by adding a new table entry to
 exact address string that triggered the failure. This ensures the specific
 case remains covered even if the property test parameters change.
 
+## Doc comments on exported identifiers
+
+Every exported const, var, type, func, and method on an exported type needs a
+doc comment. `internal/doccheck` enforces this: it walks the module's
+first-party packages (skipping `adapters/walletsdk`, which is a nested module
+checked by its own CI job) and fails on any exported identifier with none.
+`TestRoot_RepoIsClean` in `internal/doccheck/doccheck_test.go` runs it as part
+of the normal suite, so `go test ./...` fails the same way CI does.
+
+Reproduce a failure locally:
+
+```
+go test ./internal/doccheck/... -run TestRoot_RepoIsClean -v
+```
+
+Each line names the file, the line, and the identifier. A const or var block
+can be documented either per entry or with one comment above the block (both
+count); a method only needs a doc comment when its receiver type is itself
+exported, since a method on an unexported type is not reachable through
+godoc.
+
 ## What a change needs
 
 - **Tests that can fail.** A test that passes for the wrong reason is worse than
