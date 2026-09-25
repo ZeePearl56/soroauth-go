@@ -1,29 +1,28 @@
 package soroauth
 
 import (
-	"context"
 	"crypto/sha256"
 	"testing"
 
 	"github.com/stellar/go-stellar-sdk/keypair"
-	"github.com/stellar/go-stellar-sdk/network"
 	"github.com/stellar/go-stellar-sdk/xdr"
 )
 
-// These benchmarks cover the signing path the issue asks about: preimage
-// construction, payload hashing, and the full AuthorizeEntry operation
-// including its deep copy and self-verifying signer. They exist so a change to
-// the decode limits can be shown not to have regressed signing, and so any
-// future change to the signing path has a baseline to compare against.
+// BenchmarkDecodeAuthorizationEntry covers the decode-limit path
+// DecodeAuthorizationEntry adds over xdr.SafeUnmarshalBase64, so a change to
+// MaxDecodeDepth or MaxDecodeInputBytes checking can be shown not to have
+// regressed the common case of decoding a well-formed entry.
 //
-// They use fixed inputs and an in-memory deterministic key, so they never touch
-// the network and are safe to run anywhere.
+// BenchmarkPreimage, BenchmarkPayload and BenchmarkAuthorizeEntry already
+// exist in bench_signing_test.go (issue #107) and are not duplicated here.
+//
+// It uses a fixed input and an in-memory deterministic key, so it never
+// touches the network and is safe to run anywhere.
 
 const benchmarkValidUntilLedger = 1234567
 
 // benchmarkEntryAndSigner builds a complete V2 address entry whose address is
-// the benchmark key's own, so AuthorizeEntry has a matching node without
-// ForAddress and the measurement includes the normal case.
+// the benchmark key's own.
 func benchmarkEntryAndSigner(b *testing.B) (xdr.SorobanAuthorizationEntry, *keypair.Full) {
 	b.Helper()
 
@@ -77,48 +76,6 @@ func benchmarkEntryAndSigner(b *testing.B) (xdr.SorobanAuthorizationEntry, *keyp
 		},
 	}
 	return entry, kp
-}
-
-func BenchmarkPreimage(b *testing.B) {
-	entry, _ := benchmarkEntryAndSigner(b)
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		if _, err := Preimage(entry, benchmarkValidUntilLedger, network.TestNetworkPassphrase); err != nil {
-			b.Fatalf("Preimage returned an unexpected error: %v", err)
-		}
-	}
-}
-
-func BenchmarkPayload(b *testing.B) {
-	entry, _ := benchmarkEntryAndSigner(b)
-	preimage, err := Preimage(entry, benchmarkValidUntilLedger, network.TestNetworkPassphrase)
-	if err != nil {
-		b.Fatalf("building the benchmark preimage: %v", err)
-	}
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		if _, err := Payload(preimage); err != nil {
-			b.Fatalf("Payload returned an unexpected error: %v", err)
-		}
-	}
-}
-
-func BenchmarkAuthorizeEntry(b *testing.B) {
-	entry, kp := benchmarkEntryAndSigner(b)
-	signer := NewEd25519Signer(kp)
-	ctx := context.Background()
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		if _, err := AuthorizeEntry(ctx, entry, signer, benchmarkValidUntilLedger, network.TestNetworkPassphrase); err != nil {
-			b.Fatalf("AuthorizeEntry returned an unexpected error: %v", err)
-		}
-	}
 }
 
 func BenchmarkDecodeAuthorizationEntry(b *testing.B) {

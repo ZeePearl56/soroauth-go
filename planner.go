@@ -69,7 +69,7 @@ func Plan(validUntilLedger uint32, policy []DelegatePolicy, registrations ...Sig
 	}
 
 	// Sort and validate at each level.
-	nodes, err := buildDelegateNodes(delegates)
+	nodes, err := buildDelegateNodes(delegates, 1)
 	if err != nil {
 		return PlannedTree{}, err
 	}

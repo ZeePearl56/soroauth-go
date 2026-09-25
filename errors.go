@@ -119,6 +119,16 @@ var (
 	// envelope was built against a protocol this build does not implement, so
 	// reading it would be a guess about a wire format that has not been read.
 	ErrUnsupportedEnvelope = errors.New("unsupported transaction envelope type")
+
+	// ErrDecodeLimit is returned by DecodeAuthorizationEntry, and by anything
+	// built on it, when an untrusted input exceeds MaxDecodeInputBytes or
+	// MaxDecodeDepth.
+	//
+	// Those limits exist because an authorization entry decoded here came
+	// from somewhere else: a simulation, the network, or a caller's own
+	// input. A doctored or corrupted blob should be refused at a bound this
+	// library chose, not at whatever the SDK's much looser default allows.
+	ErrDecodeLimit = errors.New("input exceeds the decode limit")
 )
 
 // NoMatchingCredentialNodeError is returned when no credential node in the
